@@ -6,6 +6,10 @@
 // --------------------------------------------------------------------------------------
 
 #include "can_motor_node.h"
+#include <ACAN2517FD.h>
+#include <string.h>
+
+extern ACAN2517FD can;
 
 CANMotorNode::CANMotorNode(int node_id) : node_id(node_id) {
 }
@@ -58,7 +62,12 @@ void CANMotorNode::read_can_messages() {
 }
 
 void CANMotorNode::send_can_messages() {
-    // Prepare standard CAN packet with node_id
+    // Prepare CAN FD packet with node_id
     // Payload contains float target_position
-    // can.write(CanMsg(CanStandardId(node_id), 4, (uint8_t*)&target_position));
+    CANFDMessage msg;
+    msg.id = node_id;
+    msg.len = 4;
+    msg.type = CANFDMessage::CAN_DATA;
+    memcpy(msg.data, &target_position, 4);
+    can.tryToSend(msg);
 }
