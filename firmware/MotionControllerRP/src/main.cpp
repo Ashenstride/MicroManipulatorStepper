@@ -23,8 +23,16 @@
 #include "LittleFS.h"
 
 #include "demo_gcode_generator.h"
+#include <SPI.h>
+#include <ACAN2517FD.h>
 
 //*** GLOBALS ***************************************************************************
+
+// Example Pins for MCP2518FD on RP2040 (Update to match actual hardware)
+#define MCP2518FD_CS  17 // Example CS pin
+#define MCP2518FD_INT 16 // Example INT pin
+
+ACAN2517FD can(MCP2518FD_CS, SPI, MCP2518FD_INT);
 
 // NeoPixelConnect strip(PIN_BUILTIN_LED, 1);
 Robot robot(0.01f);
@@ -102,6 +110,18 @@ void main_core0() {
 
 void main_core1() {
   LOG_INFO("Starting CAN bus task on core 1...");
+
+  SPI.begin();
+
+  ACAN2517FDSettings settings (ACAN2517FDSettings::OSC_40MHz, 1000000, DataBitRateFactor::x1); // 1 Mbps CAN-FD
+  settings.mRequestedMode = ACAN2517FDSettings::NormalFD;
+
+  const uint32_t errorCode = can.begin (settings, [] { can.isr() ; });
+  if (errorCode == 0) {
+      LOG_INFO("CAN-FD Initialized successfully!");
+  } else {
+      LOG_ERROR("CAN-FD Initialization failed! Error code: %d", errorCode);
+  }
 
   uint64_t last_time = time_us_64();
   while(true) {
